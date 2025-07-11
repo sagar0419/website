@@ -76,55 +76,26 @@
 
 <body>
 
-  <header>
-    <img src="https://github.com/sagar0419.png" alt="Sagar Parmar" />
-    <h1>Sagar Parmar</h1>
-    <p>👨‍💼 Senior Site Reliability Engineering / DevOps Consultant with 9+ years experience</p>
-    <p>
-      ✨ Platform Engineering · Kubernetes · CI/CD · Observability · Automation<br/>
-      🌱 Learning: Golang
+  <header style="background: linear-gradient(45deg, #3a8dde, #00b894); color: white; padding: 50px 20px; text-align: center;">
+    <img 
+      src="https://github.com/sagar0419.png" 
+      alt="Sagar Parmar" 
+      style="border-radius: 50%; width: 130px; height: 130px; object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" 
+    />
+    <h1 style="margin: 15px 0 5px; font-size: 2.2em;">Sagar Parmar</h1>
+    <p style="font-size: 1.1em; margin: 5px 0;">
+      👨‍💼 <strong>Senior SRE / DevOps Consultant</strong> with <strong>9+ years</strong> of hands-on experience
     </p>
-    <p>
-      📫 <a href="mailto:sagar.rajput27@live.com" class="highlight-link">sagar.rajput27@live.com</a> | 
-      <a href="https://github.com/sagar0419" class="highlight-link">GitHub</a>
+    <p style="margin: 10px 0; font-size: 1em;">
+      ✨ Platform Engineering · Kubernetes · CI/CD · Observability · Automation<br/>
+      🌱 Currently learning: <strong>Golang</strong>
+    </p>
+    <p style="margin-top: 15px;">
+      📫 
+      <a href="mailto:sagar.rajput27@live.com" class="highlight-link" style="color: #fff; font-weight: bold;">sagar.rajput27@live.com</a> &nbsp;|&nbsp;
+      <a href="https://github.com/sagar0419" class="highlight-link" style="color: #fff; font-weight: bold;">GitHub</a>
     </p>
   </header>
-
-  <section>
-    <h2>Pinned Projects</h2>
-    <div class="repos">
-      <!-- Project cards -->
-      <div class="repo">
-        <h3><a href="https://github.com/sagar0419/ImageAdmissionWebhook">GoLang-Code-for-Image-Validation</a></h3>
-        <p>Code for Image validation webhook to only allow image from a specific registry.</p>
-      </div>
-
-      <div class="repo">
-        <h3><a href="https://github.com/sagar0419/aws_site2site_vpn">Terraform-Code-for-AWS-VPN</a></h3>
-        <p>Terraform script to create an AWS site to site VPN</p>
-      </div>
-
-      <div class="repo">
-        <h3><a href="https://github.com/sagar0419/BackstageTesting">Backstage</a></h3>
-        <p>Experimental backstage backend integrating GitHub & Jira via env variables</p>
-      </div>
-
-      <div class="repo">
-        <h3><a href="https://github.com/sagar0419/cilium-network-policy">Cilium-Network-Policy</a></h3>
-        <p>Kubernetes cilium CNI policies to allow frontend↔backend communication and DNS/internet access</p>
-      </div>
-
-      <div class="repo">
-        <h3><a href="https://github.com/sagar0419/ansible-kubernetes">Ansible-Kubernetes</a></h3>
-        <p>Create Kubernetes cluster using ansible</p>
-      </div>
-
-      <div class="repo">
-        <h3><a href="https://github.com/sagar0419/AWSterraformASG">Terraform-Code-for-AWS-ASG</a></h3>
-        <p>Terraform scripts to create AWS auto scaling group</p>
-      </div>
-    </div>
-  </section>
 
   <section id="experience" style="background: linear-gradient(90deg, #e0f7fa, #e8f5e9); padding: 60px 20px;">
     <div style="max-width: 900px; margin: auto;">
@@ -136,7 +107,7 @@
         <div style="background: white; border-left: 6px solid #3a8dde; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
           <h3 style="margin: 0 0 10px; font-size: 1.2em; color: #2d3436;">🔧 DevOps/SRE Consultant</h3>
           <p style="margin: 0; color: #555;">
-            Spearheaded Kubernetes (EKS, AKS, GKE) rollout for <strong>43+ prod environments</strong>, reducing deployment time by <strong>70%</strong> and ensuring <strong>99.99% uptime</strong>. Automated CI/CD via GitHub Actions, Jenkins & ArgoCD, cutting manual release effort by <strong>80%</strong>.
+            Spearheaded Kubernetes (EKS, AKS, GKE, on-prem) rollout for <strong>43+ prod environments</strong>, reducing deployment time by <strong>70%</strong> and ensuring <strong>99.99% uptime</strong>. Automated CI/CD via GitHub Actions, Jenkins & ArgoCD, cutting manual release effort by <strong>80%</strong>.
           </p>
         </div>
 
@@ -159,15 +130,81 @@
   </section>
 
   <section>
-    <h2>About Me</h2>
-    <p>
-      A seasoned SRE/DevOps professional skilled in monitoring, infrastructure automation, CI/CD, and cloud-native platforms like AKS/EKS/GKE and on-prem.
-      Deeply passionate about zero‑downtime infra, self‑healing systems, observability stacks, and scalable reliability.
-    </p>
+    <h2 style="text-align: center; font-size: 2em; color: #2c3e50; margin-bottom: 30px;">📌 Pinned Projects</h2>
+    <div class="repos">
+      
+      <div class="repo">
+        <h3><a href="https://github.com/sagar0419/ImageAdmissionWebhook">🔐 Image Validation Webhook</a></h3>
+        <p>Golang-based K8s webhook to restrict images to a specific registry.</p>
+        <span class="badge">Go</span>
+        <span class="badge">Kubernetes</span>
+        <span class="badge">Admission Controller</span>
+      </div>
+
+      <div class="repo">
+        <h3><a href="https://github.com/sagar0419/aws_site2site_vpn">🌐 AWS Site-to-Site VPN</a></h3>
+        <p>Terraform modules for automating secure VPN tunnels in AWS.</p>
+        <span class="badge">Terraform</span>
+        <span class="badge">AWS</span>
+        <span class="badge">Networking</span>
+      </div>
+
+      <div class="repo">
+        <h3><a href="https://github.com/sagar0419/BackstageTesting">🎭 Backstage Integration Test</a></h3>
+        <p>Experimental backend for Backstage.io with GitHub & Jira SSO via env vars.</p>
+        <span class="badge">Node.js</span>
+        <span class="badge">Backstage</span>
+        <span class="badge">Auth</span>
+      </div>
+
+      <div class="repo">
+        <h3><a href="https://github.com/sagar0419/cilium-network-policy">🔒 Cilium Network Policies</a></h3>
+        <p>Defines namespace isolation and egress rules using Cilium in Kubernetes.</p>
+        <span class="badge">Cilium</span>
+        <span class="badge">K8s</span>
+        <span class="badge">Network Policy</span>
+      </div>
+
+      <div class="repo">
+        <h3><a href="https://github.com/sagar0419/ansible-kubernetes">⚙️ Ansible Kubernetes</a></h3>
+        <p>Automated K8s cluster provisioning using Ansible roles and playbooks.</p>
+        <span class="badge">Ansible</span>
+        <span class="badge">Linux</span>
+        <span class="badge">Kubernetes</span>
+      </div>
+
+      <div class="repo">
+        <h3><a href="https://github.com/sagar0419/AWSterraformASG">🚀 AWS Auto Scaling Group</a></h3>
+        <p>Provision scalable EC2 clusters with Terraform-managed ASGs.</p>
+        <span class="badge">Terraform</span>
+        <span class="badge">AWS</span>
+        <span class="badge">EC2</span>
+      </div>
+
+    </div>
   </section>
 
-  <footer>
-    <p>Designed & developed by Sagar Parmar • Profile curated via GitHub repo</p>
+  <section style="background: linear-gradient(90deg, #fefefe, #f0f7ff); padding: 60px 20px;">
+    <div style="max-width: 900px; margin: auto; text-align: center;">
+      <h2 style="font-size: 2em; font-weight: 700; color: #2c3e50; margin-bottom: 20px;">👨‍💻 About Me</h2>
+      <p style="font-size: 1.1em; line-height: 1.7; color: #444;">
+        I'm a seasoned <strong>Site Reliability Engineer & DevOps Consultant</strong> with over <strong>9 years</strong> of hands-on experience across enterprise and startup environments.
+        I specialize in <strong>infrastructure automation, cloud-native platforms</strong> (AKS, EKS, GKE, and on-prem), and scalable CI/CD systems.
+      </p>
+      <p style="font-size: 1.1em; line-height: 1.7; margin-top: 16px; color: #444;">
+        Passionate about building <strong>zero‑downtime, self‑healing, and observable systems</strong> that empower engineering teams to move faster with confidence.
+        Always exploring tools that enhance <strong>reliability, velocity, and efficiency</strong> in cloud-native ecosystems.
+      </p>
+    </div>
+  </section>
+
+  <footer style="background: #2c3e50; color: #ecf0f1; padding: 30px 20px; text-align: center; font-size: 0.95em;">
+    <p style="margin: 0;">
+      Designed & developed by <strong>Sagar Parmar</strong> • Profile curated via 
+      <a href="https://github.com/sagar0419" target="_blank" style="color: #74b9ff; text-decoration: none;">
+        GitHub repo
+      </a>
+    </p>
   </footer>
 
 </body>
