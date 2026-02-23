@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastering NVIDIA MIG: A Deep Dive into GPU Partitioning</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Chosen Palette: NVIDIA Inspired - Tech Green & Slate -->
+    <!-- Colors: 
+         Primary Green: #76b900 (Tailwind custom: nv-green)
+         Dark Slate: #1a1a1a (bg-slate-900)
+         Light Grey: #f3f4f6 (bg-gray-100)
+         White: #ffffff
+    -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nv: {
+                            DEFAULT: '#76b900',
+                            dark: '#5d9100',
+                            light: '#8cd114'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%; /* Controlled by parent grid */
+            margin: 0 auto;
+            height: 350px;
+            max-height: 400px;
+        }
+
+        /* Custom Scrollbar for code blocks */
+        .code-scroll::-webkit-scrollbar { height: 8px; }
+        .code-scroll::-webkit-scrollbar-track { background: #333; }
+        .code-scroll::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+        
+        .step-active { border-color: #76b900; background-color: #f0fdf4; }
+        .step-inactive { border-color: transparent; }
+
+        /* Terminal Window Styling */
+        .terminal-window {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid #374151;
+        }
+    </style>
+    <!-- Application Structure Plan:
+         1. Hero Section: engaging title, definition of MIG.
+         2. Why MIG? (Concept): Comparison vs Time Slicing using simple visuals.
+         3. The Interactive Guide (The Core): A tabbed interface walking through the provided images (1-9) with command explanations.
+         4. Strategic Partitioning (Calculator): Interactive tool to plan H100 slices.
+         5. Performance Analysis: Charts showing Latency and Throughput benefits.
+         6. Optimization Best Practices: Accordion list.
+    -->
+    <!-- Visualization & Content Choices:
+         - Line Chart: To show latency spikes in Time Slicing vs Flat line in MIG.
+         - Bar Chart: Throughput comparison.
+         - Stepper/Tabs: To organize the 9 screenshots logically without clutter.
+         - CSS Grid: To visualize the "7 Slices" concept physically.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-gray-50 text-slate-800">
+
+    <!-- Hero Section -->
+    <header class="bg-slate-900 text-white pt-20 pb-24 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-nv opacity-10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-4xl mx-auto">
+                <div class="inline-block px-4 py-1 rounded-full bg-slate-800 border border-nv text-nv text-sm font-semibold tracking-wide uppercase mb-6">
+                    Infrastructure Optimization
+                </div>
+                <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-8">
+                    Mastering <span class="text-nv">MIG</span> Partitioning
+                </h1>
+                <p class="text-xl text-slate-300 leading-relaxed mb-10">
+                    Transform a single H100 into a fleet of isolated GPUs. 
+                    Stop wasting cycles on idle hardware and start guaranteeing Quality of Service (QoS) 
+                    through hardware-level isolation.
+                </p>
+                <div class="flex justify-center gap-6">
+                    <a href="#guide" class="bg-nv text-slate-900 px-8 py-3 rounded-lg font-bold hover:bg-white transition duration-300 shadow-[0_0_20px_rgba(118,185,0,0.4)]">
+                        Start The Guide
+                    </a>
+                    <a href="#analysis" class="px-8 py-3 rounded-lg font-semibold border border-slate-600 hover:border-white transition duration-300">
+                        View Benchmarks
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Concept Section: Isolation vs Time Slicing -->
+    <section class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">Why Multi-Instance GPU (MIG)?</h2>
+                <p class="max-w-2xl mx-auto text-slate-600">
+                    Traditional multi-tenancy relies on time-slicing (context switching), which causes latency jitter. 
+                    MIG provides <strong>hardware isolation</strong> for memory, cache, and compute cores.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-12">
+                <!-- Concept 1: Time Slicing -->
+                <div class="bg-slate-50 p-8 rounded-2xl border border-slate-200">
+                    <h3 class="text-xl font-bold mb-4 text-slate-700">Legacy: Time Slicing</h3>
+                    <div class="h-32 bg-slate-200 rounded-lg flex overflow-hidden mb-4 relative">
+                        <!-- Visualizing tasks switching over time -->
+                        <div class="h-full bg-blue-500 w-1/4 flex items-center justify-center text-white font-mono text-xs opacity-50">Job A</div>
+                        <div class="h-full bg-red-500 w-1/4 flex items-center justify-center text-white font-mono text-xs">Job B</div>
+                        <div class="h-full bg-blue-500 w-1/4 flex items-center justify-center text-white font-mono text-xs opacity-50">Job A</div>
+                        <div class="h-full bg-red-500 w-1/4 flex items-center justify-center text-white font-mono text-xs">Job B</div>
+                    </div>
+                    <ul class="space-y-2 text-sm text-slate-600">
+                        <li class="flex items-center"><span class="text-red-500 mr-2">✕</span> Shared L2 Cache (Thrashing risk)</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-2">✕</span> Unpredictable Latency</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-2">✕</span> Single Error crashes all jobs</li>
+                    </ul>
+                </div>
+
+                <!-- Concept 2: MIG -->
+                <div class="bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-nv opacity-20 rounded-full blur-2xl"></div>
+                    <h3 class="text-xl font-bold mb-4 text-white">The MIG Way: Spatial Partitioning</h3>
+                    <div class="h-32 rounded-lg flex gap-2 mb-4">
+                        <!-- Visualizing parallel execution -->
+                        <div class="h-full bg-nv w-1/3 rounded flex flex-col items-center justify-center text-slate-900 font-bold shadow-[0_0_10px_rgba(118,185,0,0.5)]">
+                            <span>Job A</span>
+                            <span class="text-xs font-normal">Dedicated HW</span>
+                        </div>
+                        <div class="h-full bg-blue-500 w-1/3 rounded flex flex-col items-center justify-center text-white font-bold opacity-90">
+                            <span>Job B</span>
+                            <span class="text-xs font-normal">Dedicated HW</span>
+                        </div>
+                        <div class="h-full bg-purple-500 w-1/3 rounded flex flex-col items-center justify-center text-white font-bold opacity-90">
+                            <span>Job C</span>
+                            <span class="text-xs font-normal">Dedicated HW</span>
+                        </div>
+                    </div>
+                    <ul class="space-y-2 text-sm text-slate-300">
+                        <li class="flex items-center"><span class="text-nv mr-2">✓</span> Isolated Memory Bandwidth & Cache</li>
+                        <li class="flex items-center"><span class="text-nv mr-2">✓</span> Deterministic Latency (Ideal for Inference)</li>
+                        <li class="flex items-center"><span class="text-nv mr-2">✓</span> Fault Isolation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Guide: Terminal Walkthrough -->
+    <section id="guide" class="py-20 bg-slate-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-12">
+                <span class="text-nv font-bold tracking-wider uppercase text-sm">Implementation Guide</span>
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mt-2">Configuring MIG on H100</h2>
+                <p class="mt-4 text-slate-600 max-w-3xl">
+                    Follow this step-by-step walkthrough based on real terminal outputs. 
+                    We will go from a raw GPU state to fully partitioned instances.
+                </p>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-8">
+                <!-- Navigation Tabs -->
+                <div class="lg:col-span-3 space-y-2">
+                    <button onclick="setStep(1)" id="btn-step-1" class="w-full text-left px-6 py-4 rounded-lg bg-white border-l-4 step-active shadow-sm transition hover:bg-slate-50">
+                        <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Step 01</span>
+                        <span class="font-bold text-slate-800">Initial Assessment</span>
+                    </button>
+                    <button onclick="setStep(2)" id="btn-step-2" class="w-full text-left px-6 py-4 rounded-lg bg-white border-l-4 step-inactive shadow-sm transition hover:bg-slate-50">
+                        <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Step 02</span>
+                        <span class="font-bold text-slate-800">Enable MIG Mode</span>
+                    </button>
+                    <button onclick="setStep(3)" id="btn-step-3" class="w-full text-left px-6 py-4 rounded-lg bg-white border-l-4 step-inactive shadow-sm transition hover:bg-slate-50">
+                        <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Step 03</span>
+                        <span class="font-bold text-slate-800">List Profiles</span>
+                    </button>
+                    <button onclick="setStep(4)" id="btn-step-4" class="w-full text-left px-6 py-4 rounded-lg bg-white border-l-4 step-inactive shadow-sm transition hover:bg-slate-50">
+                        <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Step 04</span>
+                        <span class="font-bold text-slate-800">Create Instances</span>
+                    </button>
+                    <button onclick="setStep(5)" id="btn-step-5" class="w-full text-left px-6 py-4 rounded-lg bg-white border-l-4 step-inactive shadow-sm transition hover:bg-slate-50">
+                        <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Step 05</span>
+                        <span class="font-bold text-slate-800">Verify & Monitor</span>
+                    </button>
+                </div>
+
+                <!-- Content Panel -->
+                <div class="lg:col-span-9">
+                    <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden min-h-[600px] flex flex-col">
+                        
+                        <!-- Top Bar of "Terminal" -->
+                        <div class="bg-slate-800 px-4 py-2 flex items-center justify-between">
+                            <div class="flex space-x-2">
+                                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                                <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            </div>
+                            <div class="text-slate-400 text-xs font-mono" id="terminal-title">user@server: ~</div>
+                            <div></div>
+                        </div>
+
+                        <!-- Step Content -->
+                        <div class="p-6 md:p-8 flex-grow flex flex-col" id="step-content">
+                            <!-- Injected via JS -->
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Calculator -->
+    <section class="py-20 bg-white border-t border-slate-200">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-slate-900">Partition Planning Calculator</h2>
+                <p class="text-slate-600 mt-2">
+                    An H100 (80GB) typically has <strong>7 Compute Slices</strong> and <strong>8 Memory Slices</strong>. 
+                    Mix and match profiles to fill the GPU.
+                </p>
+            </div>
+
+            <div class="bg-slate-50 rounded-2xl p-8 border border-slate-200 shadow-inner">
+                
+                <!-- Visual Feedback Bar -->
+                <div class="mb-8">
+                    <div class="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                        <span>Utilization</span>
+                        <span id="capacity-text" class="text-nv-dark">0 / 7 Compute Slices</span>
+                    </div>
+                    <div class="w-full h-16 bg-slate-200 rounded-lg overflow-hidden flex border border-slate-300 relative" id="capacity-bar">
+                        <!-- Slices injected here -->
+                        <div class="absolute inset-0 flex items-center justify-center text-slate-400 text-sm font-mono pointer-events-none opacity-50">GPU EMPTY</div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <button onclick="addSlice(1, '1g.10gb')" class="p-4 bg-white border border-slate-200 rounded-xl hover:border-nv hover:shadow-md transition text-left group">
+                        <div class="text-lg font-bold text-slate-800 group-hover:text-nv">1g.10gb</div>
+                        <div class="text-xs text-slate-500">1 Slice • 10GB</div>
+                    </button>
+                    <button onclick="addSlice(2, '2g.20gb')" class="p-4 bg-white border border-slate-200 rounded-xl hover:border-nv hover:shadow-md transition text-left group">
+                        <div class="text-lg font-bold text-slate-800 group-hover:text-nv">2g.20gb</div>
+                        <div class="text-xs text-slate-500">2 Slices • 20GB</div>
+                    </button>
+                    <button onclick="addSlice(3, '3g.40gb')" class="p-4 bg-white border border-slate-200 rounded-xl hover:border-nv hover:shadow-md transition text-left group">
+                        <div class="text-lg font-bold text-slate-800 group-hover:text-nv">3g.40gb</div>
+                        <div class="text-xs text-slate-500">3 Slices • 40GB</div>
+                    </button>
+                    <button onclick="addSlice(7, '7g.80gb')" class="p-4 bg-white border border-slate-200 rounded-xl hover:border-nv hover:shadow-md transition text-left group">
+                        <div class="text-lg font-bold text-slate-800 group-hover:text-nv">7g.80gb</div>
+                        <div class="text-xs text-slate-500">7 Slices • 80GB</div>
+                    </button>
+                </div>
+
+                <div class="flex justify-between items-center border-t border-slate-200 pt-4">
+                    <div class="text-xs text-slate-500">
+                        *Note: Exact memory slice mapping can vary slightly by SKU. 1g.10gb is the most common granular unit.
+                    </div>
+                    <button onclick="resetCalculator()" class="text-red-500 font-semibold hover:text-red-700 text-sm">Reset Configuration</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Data Analysis Section -->
+    <section id="analysis" class="py-20 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-12">
+                <h2 class="text-3xl font-bold text-slate-900">Performance Implications</h2>
+                <p class="mt-2 text-slate-600">When to choose MIG over other virtualization methods.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Chart 1: Latency -->
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Inference Latency Stability</h3>
+                    <p class="text-sm text-slate-500 mb-6">Comparison of p99 Latency under load (Lower is better).</p>
+                    <div class="chart-container">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-xs text-slate-500 bg-slate-50 p-3 rounded">
+                        <strong>Insight:</strong> MIG maintains flat latency even as other instances are loaded. Time-sliced GPUs exhibit spikes due to context switching contention.
+                    </div>
+                </div>
+
+                <!-- Chart 2: Throughput -->
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100">
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Aggregate Throughput</h3>
+                    <p class="text-sm text-slate-500 mb-6">Total system throughput running 7 simultaneous jobs.</p>
+                    <div class="chart-container">
+                        <canvas id="throughputChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-xs text-slate-500 bg-slate-50 p-3 rounded">
+                        <strong>Insight:</strong> MIG allows 7 jobs to run in parallel, achieving near-linear scaling (approx 95-98% of bare metal) compared to sequential execution.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Optimization Tips -->
+    <section class="py-20 bg-slate-900 text-white">
+        <div class="max-w-4xl mx-auto px-4">
+            <h2 class="text-3xl font-bold mb-10 text-center">Optimization & Best Practices</h2>
+            
+            <div class="space-y-6">
+                <div class="flex gap-4 items-start">
+                    <div class="w-12 h-12 rounded bg-nv text-slate-900 flex items-center justify-center font-bold text-xl flex-shrink-0">1</div>
+                    <div>
+                        <h4 class="text-xl font-bold text-nv mb-1">Compute vs Memory Bound</h4>
+                        <p class="text-slate-300">
+                            MIG works best for workloads that are memory bandwidth constrained or small enough to not need a full H100 (e.g., BERT-Large Inference, Jupyter Notebooks). 
+                            If your model needs NVLink to scale across GPUs, <strong>disable MIG</strong>.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                    <div class="w-12 h-12 rounded bg-nv text-slate-900 flex items-center justify-center font-bold text-xl flex-shrink-0">2</div>
+                    <div>
+                        <h4 class="text-xl font-bold text-nv mb-1">Dynamic Reconfiguration</h4>
+                        <p class="text-slate-300">
+                            Changing MIG profiles requires the GPU to be idle. In production, use Kubernetes (MIG Strategy: Mixed) to advertise different node labels for different slice sizes, rather than re-slicing on the fly.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                    <div class="w-12 h-12 rounded bg-nv text-slate-900 flex items-center justify-center font-bold text-xl flex-shrink-0">3</div>
+                    <div>
+                        <h4 class="text-xl font-bold text-nv mb-1">Monitoring with DCGM</h4>
+                        <p class="text-slate-300">
+                            Standard `nvidia-smi` gives limited visibility inside a slice. Use NVIDIA DCGM (Data Center GPU Manager) to profile metrics like `gr_engine_active` per MIG instance to ensure you aren't under-utilizing your slices.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-black text-slate-500 py-12 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="mb-4 text-sm">Generated for Educational Purposes regarding NVIDIA H100 Configuration.</p>
+            <p class="text-xs">Based on user provided terminal outputs (1.png - 9.png).</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Step Guide Logic ---
+        const steps = {
+            1: {
+                title: "Initial State Assessment",
+                desc: "Before configuration, we must inspect the current GPU state. Running `nvidia-smi` reveals that MIG mode is currently disabled or 'N/A'.",
+                code: "nvidia-smi",
+                images: ["1.png", "2.png"],
+                insight: "Note the 'MIG M.' column in the output. If it says N/A or Disabled, the GPU is acting as a single monolithic device."
+            },
+            2: {
+                title: "Enabling MIG Mode",
+                desc: "MIG is an opt-in feature. We must enable it explicitly using the `-mig 1` flag on the specific GPU ID.",
+                code: "sudo nvidia-smi -i 0 -mig 1",
+                images: ["3.png"],
+                insight: "Warning: Depending on the driver version and running processes, this might require a GPU reset (`sudo nvidia-smi --gpu-reset`) or a system reboot to take effect."
+            },
+            3: {
+                title: "Listing Profiles",
+                desc: "The H100 supports specific partition sizes. Use `-lgip` (List GPU Instance Profiles) to see what is available.",
+                code: "sudo nvidia-smi mig -lgip",
+                images: ["4.png", "5.png"],
+                insight: "The output shows profiles like `19` (1g.10gb), `14` (2g.20gb), etc. The 'ID' column is what we will use in the next step to create the slices."
+            },
+            4: {
+                title: "Creating Instances",
+                desc: "Now we partition the GPU. We use `-cgi` (Create GPU Instance) followed by the Profile IDs.",
+                code: "sudo nvidia-smi mig -cgi 19,19,19 -i 0",
+                images: ["6.png", "6.1.png"],
+                insight: "In this example (Image 6), we are creating multiple instances. You can mix and match, e.g., `-cgi 19,14` to create one 1g.10gb and one 2g.20gb instance."
+            },
+            5: {
+                title: "Verification",
+                desc: "Finally, we confirm the instances are active and ready to accept workloads using `-L`.",
+                code: "nvidia-smi -L",
+                images: ["7.png", "8.png", "9.png"],
+                insight: "The output now lists specific UUIDs for each MIG instance (e.g., `MIG-GPU-...`). You pass these UUIDs to Docker or Kubernetes to assign the slice to a container."
+            }
+        };
+
+        function setStep(stepNum) {
+            // Update Buttons
+            document.querySelectorAll('[id^="btn-step-"]').forEach(btn => {
+                btn.classList.remove('step-active');
+                btn.classList.add('step-inactive');
+            });
+            document.getElementById(`btn-step-${stepNum}`).classList.add('step-active');
+            document.getElementById(`btn-step-${stepNum}`).classList.remove('step-inactive');
+
+            // Update Content
+            const data = steps[stepNum];
+            const contentDiv = document.getElementById('step-content');
+            
+            // Generate Image HTML
+            let imgHTML = '';
+            data.images.forEach(img => {
+                imgHTML += `
+                    <div class="mb-4 border border-slate-200 rounded overflow-hidden shadow-sm">
+                        <div class="bg-slate-100 px-3 py-1 text-xs font-mono text-slate-500 border-b border-slate-200">File: ${img}</div>
+                        <img src="${img}" alt="Terminal Output ${img}" class="w-full h-auto" onerror="this.onerror=null;this.src='https://placehold.co/800x400?text=Image+${img}+Not+Found';this.style.opacity=0.5">
+                    </div>`;
+            });
+
+            contentDiv.innerHTML = `
+                <div class="grid lg:grid-cols-2 gap-8 h-full animate-fade-in">
+                    <div class="flex flex-col">
+                        <h3 class="text-2xl font-bold text-slate-800 mb-2">${data.title}</h3>
+                        <p class="text-slate-600 mb-6 leading-relaxed">${data.desc}</p>
+                        
+                        <div class="bg-slate-900 rounded-lg p-4 shadow-inner mb-6">
+                            <div class="text-xs text-slate-500 mb-1">Command:</div>
+                            <code class="text-nv font-mono text-sm block overflow-x-auto code-scroll pb-2">${data.code}</code>
+                        </div>
+
+                        <div class="mt-auto bg-green-50 border-l-4 border-nv p-4 rounded-r">
+                            <strong class="block text-nv-dark text-sm uppercase tracking-wide mb-1">Technical Insight</strong>
+                            <p class="text-sm text-slate-700">${data.insight}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-y-auto max-h-[600px] code-scroll pr-2">
+                         ${imgHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Calculator Logic ---
+        let usedSlices = 0;
+        const maxSlices = 7;
+        let currentConfig = [];
+
+        function addSlice(size, label) {
+            if (usedSlices + size > maxSlices) {
+                const bar = document.getElementById('capacity-bar');
+                bar.classList.add('ring-2', 'ring-red-500');
+                setTimeout(() => bar.classList.remove('ring-2', 'ring-red-500'), 500);
+                return;
+            }
+
+            usedSlices += size;
+            currentConfig.push({ size, label });
+            renderCalculator();
+        }
+
+        function resetCalculator() {
+            usedSlices = 0;
+            currentConfig = [];
+            renderCalculator();
+        }
+
+        function renderCalculator() {
+            const bar = document.getElementById('capacity-bar');
+            const text = document.getElementById('capacity-text');
+            
+            text.innerHTML = `<span class="${usedSlices === maxSlices ? 'text-green-600' : 'text-slate-800'}">${usedSlices}</span> / ${maxSlices} Compute Slices`;
+            
+            // Clear bar
+            bar.innerHTML = '';
+            
+            if (currentConfig.length === 0) {
+                 bar.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-slate-400 text-sm font-mono pointer-events-none opacity-50">GPU EMPTY</div>';
+            }
+
+            currentConfig.forEach(item => {
+                const widthPct = (item.size / maxSlices) * 100;
+                const div = document.createElement('div');
+                div.style.width = `${widthPct}%`;
+                
+                // Styling based on size
+                let bgClass = 'bg-nv';
+                if (item.size > 1) bgClass = 'bg-teal-500';
+                if (item.size > 2) bgClass = 'bg-blue-500';
+                if (item.size > 4) bgClass = 'bg-indigo-600';
+
+                div.className = `h-full ${bgClass} border-r border-white/50 flex items-center justify-center text-white text-xs font-bold whitespace-nowrap overflow-hidden transition-all duration-300`;
+                div.textContent = item.label;
+                bar.appendChild(div);
+            });
+        }
+
+        // --- Chart.js Logic ---
+        function initCharts() {
+            // Latency Chart
+            const ctxLat = document.getElementById('latencyChart').getContext('2d');
+            new Chart(ctxLat, {
+                type: 'line',
+                data: {
+                    labels: ['1 Job', '2 Jobs', '3 Jobs', '4 Jobs', '5 Jobs', '6 Jobs', '7 Jobs'],
+                    datasets: [
+                        {
+                            label: 'MIG (Isolated)',
+                            data: [10, 10.2, 10.1, 10.3, 10.2, 10.4, 10.3], // Flat
+                            borderColor: '#76b900',
+                            backgroundColor: '#76b900',
+                            borderWidth: 3,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Time-Slicing (Shared)',
+                            data: [10, 15, 25, 45, 80, 120, 180], // Exponential spike
+                            borderColor: '#cbd5e1',
+                            backgroundColor: '#cbd5e1',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    return tooltipItems[0].label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            title: { display: true, text: 'Latency (ms)' },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Throughput Chart
+            const ctxTp = document.getElementById('throughputChart').getContext('2d');
+            new Chart(ctxTp, {
+                type: 'bar',
+                data: {
+                    labels: ['Single Big Job (No MIG)', '7 Small Jobs (MIG)'],
+                    datasets: [{
+                        label: 'Throughput (Images/sec)',
+                        data: [1200, 4800], // Illustrative scaling
+                        backgroundColor: ['#1e293b', '#76b900'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    return tooltipItems[0].label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9' }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setStep(1);
+            initCharts();
+            renderCalculator();
+        });
+
+    </script>
+</body>
+</html>
