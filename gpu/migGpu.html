@@ -424,10 +424,12 @@
             // Generate Image HTML
             let imgHTML = '';
             data.images.forEach(img => {
+                const imagePath = `gpu/mig/${img}`; 
+                
                 imgHTML += `
                     <div class="mb-4 border border-slate-200 rounded overflow-hidden shadow-sm">
                         <div class="bg-slate-100 px-3 py-1 text-xs font-mono text-slate-500 border-b border-slate-200">File: ${img}</div>
-                        <img src="${img}" alt="Terminal Output ${img}" class="w-full h-auto" onerror="this.onerror=null;this.src='https://placehold.co/800x400?text=Image+${img}+Not+Found';this.style.opacity=0.5">
+                        <img src="${imagePath}" alt="Terminal Output ${img}" class="w-full h-auto" onerror="this.onerror=null;this.src='https://placehold.co/800x400?text=Image+${img}+Not+Found';this.style.opacity=0.5">
                     </div>`;
             });
 

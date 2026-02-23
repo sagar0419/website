@@ -106,9 +106,9 @@
       LinkedIn
     </a>
     &nbsp;|&nbsp;
-    <a href="miggpu.html" class="highlight-link" style="color: #fff; font-weight: bold;">MIG Guide</a>
-    &nbsp;|&nbsp;
-    <a href="migGpu2.html" class="highlight-link" style="color: #fff; font-weight: bold;">MIG Guide 2</a>
+    <a href="infrastructure.html" class="highlight-link" style="color: #fff; font-weight: bold;">
+      Infrastructure Optimization
+    </a>
   </p>
   </header>
 
@@ -212,6 +212,40 @@
 
     </div>
   </section>
+
+
+<!-- Blog Section -->
+<section id="Blog" style="padding: 60px 20px;">
+  <h2 style="text-align: center; font-size: 2.2em; font-weight: 700; color: #2c3e50; margin-bottom: 30px;">✍️ Latest Blog Posts</h2>
+  <!-- The script will inject the blogs here -->
+  <div id="blog-container" class="repos"></div>
+</section>
+
+<script>
+  // Add blogs Here
+    const blogData = [
+        { title: "MIG Guide", desc: "A comprehensive guide on Multi-Instance GPU (MIG) configurations...", link: "https://medium.com/@sagar-parmar/a-practical-guide-to-gpu-partitioning-with-mig-on-on-prem-servers-and-kubernetes-797ccea7e1c7" },
+        { title: "NVIDIA GPU Operator", desc: "NVIDIA GPU Operator Explained: Simplifying GPU Workloads on Kubernetes", link: "https://sagar-parmar.medium.com/nvidia-gpu-operator-explained-simplifying-gpu-workloads-on-kubernetes-436e0a60d0ac" },
+        { title: "Creating Infra Using Backstage", desc: "Creating Infra Using Backstage Templates, Terraform and GitHub actions.", link: "https://medium.com/@sagar-parmar/creating-infra-using-backstage-templates-terraform-and-github-actions-15ca4a93b1a1" },
+        { title: "OpenTelemetry", desc: "OpenTelemetry auto-instrumentation with Jaeger", link: "https://medium.com/dev-genius/integration-of-opentelemetry-auto-instrumentation-with-jaeger-4de147a64f38" },
+    ];
+
+    function renderBlogs() {
+        const container = document.getElementById('blog-container');
+        
+        container.innerHTML = blogData.map(blog => `
+            <div class="repo" style="border-top: 5px solid #3a8dde; margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #f9f9f9;">
+                <h3><a href="${blog.link}" target="_blank" style="text-decoration: none; color: #3a8dde;">${blog.title}</a></h3>
+                <p style="color: #444; font-size: 0.95em;">${blog.desc}</p>
+                <a href="${blog.link}" target="_blank" style="font-size: 0.85em; color: #777; text-decoration: none;">Read on Medium →</a>
+            </div>
+        `).join('');
+    }
+
+    // Call it to display the blogs
+    renderBlogs();
+</script>
+
 
   <footer style="background: #2c3e50; color: #ecf0f1; padding: 30px 20px; text-align: center; font-size: 0.95em;">
     <p style="margin: 0;">
