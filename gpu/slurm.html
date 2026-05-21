@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demystifying SLURM: AI Infrastructure Workload Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto', sans-serif; background-color: #f0f4f8; }
+        .chart-container { position: relative; width: 100%; max-width: 650px; margin-left: auto; margin-right: auto; height: 350px; max-height: 400px; }
+        .arch-box { border: 2px solid #00D2D3; border-radius: 0.5rem; padding: 1.5rem; text-align: center; background: #1A1A2E; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .arch-sub-box { border: 2px solid #E94560; border-radius: 0.5rem; padding: 1rem; text-align: center; background: #0F3460; color: white; }
+        .line-v { width: 4px; height: 40px; background-color: #00D2D3; margin: 0 auto; }
+        .line-h { height: 4px; background-color: #00D2D3; width: 100%; }
+        .grid-line { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; position: relative; }
+        .grid-line::before { content: ''; position: absolute; top: -40px; left: 25%; right: 25%; height: 4px; background-color: #00D2D3; }
+        .grid-line > div { position: relative; }
+        .grid-line > div::before { content: ''; position: absolute; top: -40px; left: 50%; width: 4px; height: 40px; background-color: #00D2D3; transform: translateX(-50%); }
+    </style>
+</head>
+<body class="text-gray-800 antialiased">
+    <!--
+    Confirmation: NEITHER Mermaid JS NOR SVG were used anywhere in the output. All diagrams utilize structured HTML/CSS, and charts utilize Canvas.
+    Palette Chosen: "Energetic Tech" (Navy: #1A1A2E, Vibrant Blue: #0F3460, Cyan: #00D2D3, Red/Pink: #E94560, Light Gray: #f0f4f8)
+    Narrative Plan:
+    1. Introduction: Hook the user on SLURM's role in AI.
+    2. Architecture: Break down Slurmctld vs Slurmd using HTML/CSS mapping.
+    3. Inspection: Visualize cluster health to explain sinfo/squeue.
+    4. Resources: Donut chart for Memory/GPU allocations to explain GRES and memory flags.
+    5. Submissions: Polar Area chart showing batch vs interactive workflows.
+    6. Environment & Troubleshooting: Scatter plot of job efficiency mapping to the 'seff' command.
+    Visualization Choices:
+    - Architecture -> Organize -> HTML/CSS Diagram -> Structured DOM elements (NO SVG)
+    - Cluster State -> Compare -> Bar Chart -> Chart.js Canvas (NO SVG)
+    - GPU Resource -> Inform/Compare -> Donut Chart -> Chart.js Canvas (NO SVG)
+    - Submission Types -> Compare -> Polar Area Chart -> Chart.js Canvas (NO SVG)
+    - Job Efficiency -> Relationships -> Scatter Plot -> Chart.js Canvas (NO SVG)
+    -->
+
+    <header class="bg-[#1A1A2E] text-white py-16 px-6 text-center border-b-8 border-[#E94560]">
+        <h1 class="text-5xl md:text-6xl font-black mb-4 tracking-tight"><span class="text-[#00D2D3]">SLURM</span> Workload Manager</h1>
+        <p class="text-xl md:text-2xl font-light max-w-3xl mx-auto text-gray-300">The central nervous system for modern AI infrastructure and High-Performance Computing.</p>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-12 space-y-20">
+
+        <section id="architecture">
+            <div class="mb-8 text-center max-w-4xl mx-auto">
+                <h2 class="text-4xl font-bold text-[#1A1A2E] mb-4">🖥️ Phase 1: Architecture & Vocabulary</h2>
+                <p class="text-lg text-gray-600 leading-relaxed">Understanding SLURM begins with its highly scalable architecture. It operates on a primary/worker model designed to orchestrate massive resource pools. Below is the fundamental hierarchy of how the central controller delegates workloads to individual physical compute servers.</p>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-xl p-8 border-t-4 border-[#00D2D3]">
+                <div class="flex flex-col items-center">
+                    <div class="arch-box w-64 z-10">
+                        <h3 class="text-xl font-bold text-[#00D2D3]">The Controller</h3>
+                        <p class="font-mono text-sm mt-2">slurmctld</p>
+                        <p class="text-sm mt-2 text-gray-300">Central orchestration daemon</p>
+                    </div>
+                    
+                    <div class="line-v"></div>
+                    
+                    <div class="w-full max-w-2xl mt-10">
+                        <div class="grid-line">
+                            <div class="flex flex-col items-center">
+                                <div class="arch-sub-box w-full">
+                                    <h3 class="text-lg font-bold">Node Daemon 1</h3>
+                                    <p class="font-mono text-sm mt-1">slurmd</p>
+                                    <div class="bg-white/10 rounded mt-3 p-2 text-xs text-left">
+                                        <p>🔌 Sockets: 2</p>
+                                        <p>🧠 Cores: 64</p>
+                                        <p>🗄️ Partition: gpu-queue</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="arch-sub-box w-full">
+                                    <h3 class="text-lg font-bold">Node Daemon 2</h3>
+                                    <p class="font-mono text-sm mt-1">slurmd</p>
+                                    <div class="bg-white/10 rounded mt-3 p-2 text-xs text-left">
+                                        <p>🔌 Sockets: 2</p>
+                                        <p>🧠 Cores: 64</p>
+                                        <p>🗄️ Partition: cpu-queue</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12 bg-gray-50 p-6 rounded-lg border border-gray-200">
+                    <div>
+                        <h4 class="font-bold text-[#1A1A2E] text-lg mb-2">Nodes & Partitions</h4>
+                        <p class="text-gray-700"><strong>Nodes</strong> are physical compute servers containing CPU sockets and cores. These are grouped logically into <strong>Partitions</strong>, which act as target queues (e.g., separating high-priority AI training nodes from general CPU compute).</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-[#1A1A2E] text-lg mb-2">Jobs & Steps</h4>
+                        <p class="text-gray-700">A <strong>Job</strong> is the overall resource allocation assigned to a user for a specific time limit. Within that job, users can launch multiple <strong>Steps</strong> (individual execution tasks) using commands like <code class="bg-gray-200 px-1 rounded">srun</code>.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="inspection">
+            <div class="mb-8 text-center max-w-4xl mx-auto">
+                <h2 class="text-4xl font-bold text-[#1A1A2E] mb-4">📊 Phase 2: System Inspection</h2>
+                <p class="text-lg text-gray-600 leading-relaxed">Before submitting massive AI workloads, an engineer must audit the cluster. SLURM provides real-time telemetry regarding node health, queue congestion, and job metadata. The chart below visualizes a simulated snapshot of a cluster's node states, obtainable via the inspection tools.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div class="bg-white rounded-2xl shadow-xl p-8 border-t-4 border-[#E94560] h-full">
+                    <h3 class="text-2xl font-bold text-[#1A1A2E] mb-6">Cluster Node Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="clusterStateChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="space-y-6">
+                    <div class="bg-white rounded-2xl shadow-md p-6 border-l-4 border-[#0F3460]">
+                        <h4 class="text-xl font-bold text-[#1A1A2E] flex items-center gap-2">🔍 <code class="text-[#E94560]">sinfo</code> : Cluster State</h4>
+                        <p class="text-gray-700 mt-2">Provides an aggregate view of node availability grouped by partition. It instantly reveals how many nodes are allocated, idle, or down for maintenance, mapping directly to the data shown in the chart.</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl shadow-md p-6 border-l-4 border-[#0F3460]">
+                        <h4 class="text-xl font-bold text-[#1A1A2E] flex items-center gap-2">⏱️ <code class="text-[#E94560]">squeue</code> : Queue Inspection</h4>
+                        <p class="text-gray-700 mt-2">Lists the jobs currently running or pending in the scheduling queue. Crucial for filtering by user (<code class="bg-gray-100 px-1">-u</code>) or partition (<code class="bg-gray-100 px-1">-p</code>) to estimate wait times.</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl shadow-md p-6 border-l-4 border-[#0F3460]">
+                        <h4 class="text-xl font-bold text-[#1A1A2E] flex items-center gap-2">🛠️ <code class="text-[#E94560]">scontrol</code> : Deep Details</h4>
+                        <p class="text-gray-700 mt-2">Use <code class="font-mono text-sm">scontrol show node [name]</code> to inspect deep hardware specs and state reasons. Use <code class="font-mono text-sm">scontrol show job [id]</code> to diagnose exactly why a pending job isn't starting.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="resources">
+            <div class="mb-8 text-center max-w-4xl mx-auto">
+                <h2 class="text-4xl font-bold text-[#1A1A2E] mb-4">⚡ Phase 3: Resource Requests</h2>
+                <p class="text-lg text-gray-600 leading-relaxed">AI workloads require precise hardware mapping. Requesting too much starves other users; requesting too little results in out-of-memory errors or timeouts. Understanding SLURM's resource syntax is critical for efficient infrastructure utilization.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-[#1A1A2E] text-white rounded-xl p-6 shadow-lg">
+                        <h4 class="text-lg font-bold text-[#00D2D3] mb-3">Core Allocation</h4>
+                        <p class="text-sm text-gray-300">Tasks (<code class="text-white">-n</code>): Total MPI processes.<br>CPUs-per-task (<code class="text-white">-c</code>): Threads per process (vital for multithreaded AI data loaders).</p>
+                    </div>
+                    <div class="bg-[#1A1A2E] text-white rounded-xl p-6 shadow-lg">
+                        <h4 class="text-lg font-bold text-[#E94560] mb-3">Time Limits</h4>
+                        <p class="text-sm text-gray-300">Strictly enforce walltimes via <code class="text-white">-t days-hours:minutes:seconds</code>. Jobs exceeding this are killed to free resources.</p>
+                    </div>
+                    <div class="bg-[#1A1A2E] text-white rounded-xl p-6 shadow-lg">
+                        <h4 class="text-lg font-bold text-[#00D2D3] mb-3">Memory Limits</h4>
+                        <p class="text-sm text-gray-300">Define total job RAM via <code class="text-white">--mem</code> or distribute it evenly using <code class="text-white">--mem-per-cpu</code>.</p>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 bg-white rounded-2xl shadow-xl p-8 border-t-4 border-[#0F3460]">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+                        <div class="w-full md:w-1/2">
+                            <h3 class="text-2xl font-bold text-[#1A1A2E] mb-2">GRES: GPU Allocation</h3>
+                            <p class="text-gray-600 mb-4">AI depends heavily on Generic Resource Scheduling (GRES) to reserve specialized accelerators.</p>
+                            <div class="bg-gray-100 p-4 rounded-lg font-mono text-sm border-l-4 border-[#E94560]">
+                                #SBATCH --gres=gpu:a100:4<br>
+                                #SBATCH --nodes=1<br>
+                                #SBATCH --ntasks-per-node=1
+                            </div>
+                            <p class="text-sm text-gray-500 mt-4">The donut chart visualizes a heavily saturated GPU partition, highlighting the necessity of efficient scheduling and time limits.</p>
+                        </div>
+                        <div class="w-full md:w-1/2 chart-container">
+                            <canvas id="gpuResourceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="submission">
+            <div class="mb-8 text-center max-w-4xl mx-auto">
+                <h2 class="text-4xl font-bold text-[#1A1A2E] mb-4">🚀 Phase 4: Job Submission Types</h2>
+                <p class="text-lg text-gray-600 leading-relaxed">SLURM offers multiple entry points for executing code depending on the phase of development. From interactive debugging to launching thousands of parallel hyperparameter sweeps, choosing the right submission type is essential.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div class="bg-white rounded-2xl shadow-xl p-8 border-t-4 border-[#00D2D3] h-full">
+                    <h3 class="text-2xl font-bold text-[#1A1A2E] mb-6 text-center">AI Workflow Submission Frequency</h3>
+                    <div class="chart-container">
+                        <canvas id="submissionChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-white p-6 rounded-xl shadow border border-gray-200 hover:shadow-lg transition">
+                        <h4 class="font-bold text-[#0F3460] text-lg mb-2">📜 Batch Scripts</h4>
+                        <p class="text-sm text-gray-600">The standard. Construct <code class="font-mono text-[#E94560]">#SBATCH</code> header blocks in bash files and submit via <code class="font-mono">sbatch script.sh</code> for unattended background execution.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow border border-gray-200 hover:shadow-lg transition">
+                        <h4 class="font-bold text-[#0F3460] text-lg mb-2">💬 Interactive</h4>
+                        <p class="text-sm text-gray-600">Secure real-time shell access to compute nodes using <code class="font-mono text-[#E94560]">salloc</code>. Crucial for live debugging or testing distributed training scripts before batching.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow border border-gray-200 hover:shadow-lg transition">
+                        <h4 class="font-bold text-[#0F3460] text-lg mb-2">⚡ Direct Execution</h4>
+                        <p class="text-sm text-gray-600">Spawn application steps instantly using <code class="font-mono text-[#E94560]">srun</code>. Often utilized <em>inside</em> batch scripts to trigger parallel MPI tasks across allocated nodes.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow border border-gray-200 hover:shadow-lg transition">
+                        <h4 class="font-bold text-[#0F3460] text-lg mb-2">🗂️ Job Arrays</h4>
+                        <p class="text-sm text-gray-600">Launch massive parameter sweeps using <code class="font-mono text-[#E94560]">--array=1-100</code>. Submits multiple identical jobs differing only by an environment index variable.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="environment">
+            <div class="mb-8 text-center max-w-4xl mx-auto">
+                <h2 class="text-4xl font-bold text-[#1A1A2E] mb-4">⚙️ Phase 5 & 6: Environment & Troubleshooting</h2>
+                <p class="text-lg text-gray-600 leading-relaxed">Once a job is running or completed, managing its output and diagnosing its efficiency prevents infrastructure waste. Monitoring tools and proper environment variable usage define expert SLURM operators.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="col-span-1 lg:col-span-4 space-y-4">
+                    <div class="bg-[#0F3460] text-white p-5 rounded-lg shadow">
+                        <h4 class="font-bold text-[#00D2D3] mb-1">Environment Automation</h4>
+                        <p class="text-sm text-gray-300 mb-2">SLURM injects runtime metadata. Use <code class="bg-black/30 px-1">$SLURM_NODEID</code> or <code class="bg-black/30 px-1">$SLURM_ARRAY_TASK_ID</code> to guide code execution paths automatically.</p>
+                        <p class="text-sm text-gray-300">Control paths via <code class="bg-black/30 px-1">--chdir</code>, and direct logs safely using <code class="bg-black/30 px-1">-o</code> (standard out) and <code class="bg-black/30 px-1">-e</code> (error).</p>
+                    </div>
+                    
+                    <div class="bg-[#1A1A2E] text-white p-5 rounded-lg shadow">
+                        <h4 class="font-bold text-[#E94560] mb-1">Alerts & Intervention</h4>
+                        <p class="text-sm text-gray-300 mb-2">Trigger emails via <code class="bg-black/30 px-1">--mail-type=END,FAIL</code>. If a job hangs or spikes unexpectedly, terminate stuck processes immediately using <code class="bg-black/30 px-1 font-bold text-white">scancel [job_id]</code>.</p>
+                    </div>
+                    
+                    <div class="bg-white text-gray-800 border border-gray-300 p-5 rounded-lg shadow">
+                        <h4 class="font-bold text-[#1A1A2E] mb-1">Historical Auditing</h4>
+                        <p class="text-sm text-gray-600">Query completed jobs with <code class="font-mono bg-gray-100 text-red-600">sacct</code> to diagnose failures like OOM (Out of Memory) or TIMEOUT states, allowing subsequent request adjustments.</p>
+                    </div>
+                </div>
+
+                <div class="col-span-1 lg:col-span-8 bg-white rounded-2xl shadow-xl p-8 border-t-4 border-[#1A1A2E]">
+                    <div class="mb-4 flex flex-col md:flex-row justify-between items-start md:items-center">
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#1A1A2E]">Efficiency Audits (seff command proxy)</h3>
+                            <p class="text-gray-600 text-sm mt-1">Analyzing historical job performance to optimize future resource requests.</p>
+                        </div>
+                        <div class="mt-4 md:mt-0 text-sm bg-gray-100 p-2 rounded">
+                            <span class="inline-block w-3 h-3 rounded-full bg-[#E94560] mr-1"></span> Wasted Resources 
+                            <span class="inline-block w-3 h-3 rounded-full bg-[#00D2D3] ml-3 mr-1"></span> Optimal Zone
+                        </div>
+                    </div>
+                    <div class="chart-container" style="max-height: 450px;">
+                        <canvas id="efficiencyChart"></canvas>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-4 text-center">Scatter plot illustrates the relationship between requested vs utilized Memory and CPU percentages. Jobs in the bottom-left corner represent massive over-allocations.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-[#1A1A2E] text-center py-8 border-t-4 border-[#00D2D3] text-gray-400 mt-12">
+        <p>SLURM Workload Manager Infographic &bull; AI Infrastructure Analysis</p>
+    </footer>
+
+    <script>
+        const wrapLabel = (label) => {
+            if (label.length <= 16) return label;
+            const words = label.split(' ');
+            let lines = [];
+            let currentLine = words[0];
+            for (let i = 1; i < words.length; i++) {
+                if (currentLine.length + words[i].length + 1 <= 16) {
+                    currentLine += ' ' + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        };
+
+        const wrapLabels = (labels) => labels.map(wrapLabel);
+
+        const commonTooltip = {
+            callbacks: {
+                title: function(tooltipItems) {
+                    const item = tooltipItems[0];
+                    let label = item.chart.data.labels[item.dataIndex];
+                    if (Array.isArray(label)) {
+                        return label.join(' ');
+                    } else {
+                        return label;
+                    }
+                }
+            }
+        };
+
+        const ctxCluster = document.getElementById('clusterStateChart').getContext('2d');
+        new Chart(ctxCluster, {
+            type: 'bar',
+            data: {
+                labels: wrapLabels(["Allocated Resources", "Idle Standby", "Draining Nodes", "Down/Maintenance"]),
+                datasets: [{
+                    label: 'Number of Nodes',
+                    data: [420, 85, 20, 15],
+                    backgroundColor: ['#0F3460', '#00D2D3', '#E94560', '#1A1A2E'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: commonTooltip
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#e2e8f0' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        const ctxGpu = document.getElementById('gpuResourceChart').getContext('2d');
+        new Chart(ctxGpu, {
+            type: 'doughnut',
+            data: {
+                labels: wrapLabels(["Allocated A100 GPUs", "Available A100 GPUs", "Reserved Queue GPUs"]),
+                datasets: [{
+                    data: [75, 15, 10],
+                    backgroundColor: ['#E94560', '#00D2D3', '#1A1A2E'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: commonTooltip
+                }
+            }
+        });
+
+        const ctxSub = document.getElementById('submissionChart').getContext('2d');
+        new Chart(ctxSub, {
+            type: 'polarArea',
+            data: {
+                labels: wrapLabels(["Batch Scripts via #SBATCH", "Job Arrays Parameter Sweep", "Interactive via salloc", "Direct Execution via srun"]),
+                datasets: [{
+                    data: [50, 25, 15, 10],
+                    backgroundColor: [
+                        'rgba(15, 52, 96, 0.8)',
+                        'rgba(0, 210, 211, 0.8)',
+                        'rgba(233, 69, 96, 0.8)',
+                        'rgba(26, 26, 46, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right' },
+                    tooltip: commonTooltip
+                },
+                scales: {
+                    r: { ticks: { display: false } }
+                }
+            }
+        });
+
+        const ctxEff = document.getElementById('efficiencyChart').getContext('2d');
+        new Chart(ctxEff, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: 'Optimal Utilization',
+                        data: [{x: 85, y: 90}, {x: 95, y: 88}, {x: 75, y: 80}, {x: 92, y: 95}, {x: 88, y: 82}],
+                        backgroundColor: '#00D2D3',
+                        pointRadius: 6
+                    },
+                    {
+                        label: 'Under-utilized (Over-requested)',
+                        data: [{x: 10, y: 15}, {x: 25, y: 10}, {x: 15, y: 30}, {x: 5, y: 5}, {x: 30, y: 20}],
+                        backgroundColor: '#E94560',
+                        pointRadius: 6
+                    },
+                    {
+                        label: 'OOM Risk (Memory Constrained)',
+                        data: [{x: 40, y: 99}, {x: 50, y: 98}, {x: 20, y: 95}],
+                        backgroundColor: '#0F3460',
+                        pointRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `CPU Eff: ${context.parsed.x}%, Mem Eff: ${context.parsed.y}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'CPU Efficiency (%)', font: { weight: 'bold' } },
+                        min: 0, max: 100,
+                        grid: { color: '#e2e8f0' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Memory Efficiency (%)', font: { weight: 'bold' } },
+                        min: 0, max: 100,
+                        grid: { color: '#e2e8f0' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
